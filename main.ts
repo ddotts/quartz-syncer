@@ -1,6 +1,9 @@
 import { Notice, Plugin, Workspace } from "obsidian";
 import Publisher from "./src/publisher/Publisher";
-import QuartzSyncerSettings from "./src/models/settings";
+import QuartzSyncerSettings, {
+	type GitPublishTarget,
+	type GitRemoteSettings,
+} from "./src/models/settings";
 import { PublicationCenter } from "src/views/PublicationCenter/PublicationCenter";
 import PublishStatusManager from "src/publisher/PublishStatusManager";
 import ObsidianFrontMatterEngine from "src/publishFile/ObsidianFrontMatterEngine";
@@ -28,6 +31,7 @@ const DEFAULT_SETTINGS: QuartzSyncerSettings = {
 		},
 		providerHint: "github",
 	},
+	gitPublishTargets: [],
 	vaultPath: "/",
 
 	// Deprecated fields kept for migration
@@ -326,14 +330,37 @@ export default class QuartzSyncer extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	getGitSettingsWithSecret(): typeof this.settings.git {
+	getGitSettingsWithSecret(): GitRemoteSettings {
+		return this.getGitSettingsForTarget();
+	}
+
+	getGitSettingsForTarget(targetKey?: string): GitRemoteSettings {
+		const target = targetKey
+			? this.getEnabledPublishTargets().find((t) => t.key === targetKey)
+			: undefined;
+
 		return {
 			...this.settings.git,
+			remoteUrl: target?.remoteUrl ?? this.settings.git.remoteUrl,
+			branch: target?.branch || this.settings.git.branch,
 			auth: {
 				...this.settings.git.auth,
 				secret: this.secretStorageService.getToken() || undefined,
 			},
 		};
+	}
+
+	getEnabledPublishTargets(): GitPublishTarget[] {
+		return (this.settings.gitPublishTargets ?? [])
+			.map((target) => ({
+				...target,
+				key: target.key.trim(),
+				remoteUrl: target.remoteUrl.trim(),
+				branch: target.branch?.trim(),
+			}))
+			.filter((target) => target.enabled !== false)
+			.filter((target) => target.key.length > 0)
+			.filter((target) => target.remoteUrl.length > 0);
 	}
 
 	/**

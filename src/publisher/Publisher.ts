@@ -64,6 +64,31 @@ export default class Publisher {
 		);
 	}
 
+	getPublishTargetKeys(): string[] {
+		if (typeof this.plugin.getEnabledPublishTargets === "function") {
+			return this.plugin
+				.getEnabledPublishTargets()
+				.map((target) => target.key);
+		}
+
+		return (this.settings.gitPublishTargets ?? [])
+			.filter((target) => target.enabled !== false)
+			.map((target) => target.key.trim())
+			.filter((key) => key.length > 0);
+	}
+
+	private getTargetKeysForFiles(
+		files: CompiledPublishFile[],
+	): Array<string | undefined> {
+		const keys = new Set<string | undefined>();
+
+		for (const file of files) {
+			keys.add(file.publishTargetKey);
+		}
+
+		return [...keys];
+	}
+
 	/**
 	 * Checks if the file should be published based on its frontmatter.
 	 *
@@ -92,6 +117,7 @@ export default class Publisher {
 			this.settings.publishFrontmatterKey,
 			frontMatter,
 			this.settings.allNotesPublishableByDefault,
+			this.getPublishTargetKeys(),
 		);
 	}
 
@@ -127,7 +153,14 @@ export default class Publisher {
 			for (const path of candidates) {
 				const fm = this.metadataCache.getCache(path)?.frontmatter;
 
-				if (fm?.[this.settings.publishFrontmatterKey]) {
+				if (
+					hasPublishFlag(
+						this.settings.publishFrontmatterKey,
+						fm,
+						false,
+						this.getPublishTargetKeys(),
+					)
+				) {
 					markdownPaths.add(path);
 				}
 			}
@@ -151,6 +184,7 @@ export default class Publisher {
 							this.settings.publishFrontmatterKey,
 							fm,
 							false,
+							this.getPublishTargetKeys(),
 						);
 					})
 					.map((f) => f.path),
@@ -248,8 +282,12 @@ export default class Publisher {
 	 * Reusing a connection avoids redundant clone/fetch cycles.
 	 */
 	public createConnection(): RepositoryConnection {
+		return this.createConnectionForTarget();
+	}
+
+	public createConnectionForTarget(targetKey?: string): RepositoryConnection {
 		return new RepositoryConnection({
-			gitSettings: this.plugin.getGitSettingsWithSecret(),
+			gitSettings: this.plugin.getGitSettingsForTarget(targetKey),
 			contentFolder: this.settings.contentFolder,
 			vaultPath: this.settings.vaultPath,
 		});
@@ -266,13 +304,15 @@ export default class Publisher {
 		filePaths: string[],
 		connection?: RepositoryConnection,
 		onProgress?: (completed: number, total: number) => void | Promise<void>,
+		targetKey?: string,
 	): Promise<boolean> {
 		if (filePaths.length === 0) {
 			return true;
 		}
 
 		try {
-			const userQuartzConnection = connection ?? this.createConnection();
+			const userQuartzConnection =
+				connection ?? this.createConnectionForTarget(targetKey);
 
 			await userQuartzConnection.deleteFiles(filePaths, onProgress);
 
@@ -291,10 +331,31 @@ export default class Publisher {
 		}
 	}
 
+	public async deleteBatchesByTarget(
+		targetPaths: Map<string | undefined, string[]>,
+		onProgress?: (completed: number, total: number) => void | Promise<void>,
+	): Promise<boolean> {
+		for (const [targetKey, filePaths] of targetPaths) {
+			const connection = this.createConnectionForTarget(targetKey);
+
+			const ok = await this.deleteBatch(
+				filePaths,
+				connection,
+				onProgress,
+				targetKey,
+			);
+
+			if (!ok) return false;
+		}
+
+		return true;
+	}
+
 	public async publishBatch(
 		files: CompiledPublishFile[],
 		connection?: RepositoryConnection,
 		onProgress?: (completed: number, total: number) => void | Promise<void>,
+		targetKey?: string,
 	): Promise<boolean> {
 		const filesToPublish = files.filter((f) => {
 			if (f.file.extension === "base") {
@@ -316,15 +377,24 @@ export default class Publisher {
 				this.settings.publishFrontmatterKey,
 				f.frontmatter,
 				this.settings.allNotesPublishableByDefault,
+				this.getPublishTargetKeys(),
 			);
 		});
 
-		if (filesToPublish.length === 0) {
+		const scopedFilesToPublish =
+			targetKey === undefined
+				? filesToPublish.filter((f) => f.publishTargetKey === undefined)
+				: filesToPublish.filter(
+						(f) => f.publishTargetKey === targetKey,
+					);
+
+		if (scopedFilesToPublish.length === 0) {
 			return true;
 		}
 
 		try {
-			const userQuartzConnection = connection ?? this.createConnection();
+			const userQuartzConnection =
+				connection ?? this.createConnectionForTarget(targetKey);
 
 			const assetSyncer = new AssetSyncer(this.settings);
 
@@ -332,14 +402,14 @@ export default class Publisher {
 				await assetSyncer.collectAssets(userQuartzConnection);
 
 			await userQuartzConnection.updateFiles(
-				filesToPublish,
+				scopedFilesToPublish,
 				assetResult.filesToStage,
 				assetResult.filesToDelete,
 				onProgress,
 			);
 
 			if (this.settings.useCache) {
-				for (const file of filesToPublish) {
+				for (const file of scopedFilesToPublish) {
 					const data = await this.datastore.loadFile(file.file.path);
 
 					if (data && data.localData) {
@@ -357,6 +427,39 @@ export default class Publisher {
 			console.error(error);
 
 			return false;
+		}
+	}
+
+	public async publishBatchesByTarget(
+		files: CompiledPublishFile[],
+		onProgress?: (completed: number, total: number) => void | Promise<void>,
+	): Promise<boolean> {
+		for (const targetKey of this.getTargetKeysForFiles(files)) {
+			const connection = this.createConnectionForTarget(targetKey);
+
+			const ok = await this.publishBatch(
+				files,
+				connection,
+				onProgress,
+				targetKey,
+			);
+
+			if (!ok) return false;
+		}
+
+		return true;
+	}
+
+	private isSpecialTypeEnabled(
+		type: "base" | "canvas" | "excalidraw",
+	): boolean {
+		switch (type) {
+			case "base":
+				return this.settings.useBases;
+			case "canvas":
+				return this.settings.useCanvas;
+			case "excalidraw":
+				return this.settings.useExcalidraw;
 		}
 	}
 }

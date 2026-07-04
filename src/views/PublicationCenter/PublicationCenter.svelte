@@ -350,8 +350,6 @@
 
 		// Flush DOM so the progress bar element is mounted before we start publishing.
 		await tick();
-		// Create a shared connection to avoid redundant clone/fetch cycles
-		const sharedConnection = publisher.createConnection();
 
 		// Combine all paths into one list so progress increments uniformly across the entire publish.
 		const allPublishPaths = allNotesToPublish.map((note) =>
@@ -364,9 +362,8 @@
 
 		// Phase 1: Add/update files
 		if (allNotesToPublish.length > 0) {
-			await publisher.publishBatch(
+			await publisher.publishBatchesByTarget(
 				allNotesToPublish,
-				sharedConnection,
 				async (completed, _total) => {
 					publishedPaths = allPublishPaths.slice(0, completed);
 					processingPaths = [
@@ -385,9 +382,21 @@
 		// Phase 2: Delete files
 		if (allPathsToDelete.length > 0) {
 			processingPaths = [...allPathsToDelete];
-			await publisher.deleteBatch(
-				allPathsToDelete,
-				sharedConnection,
+			const pathsByTarget = new Map<string | undefined, string[]>();
+
+			for (const path of allPathsToDelete) {
+				const targetKey =
+					publishStatus.deletedNotePaths.find((p) => p.path === path)
+						?.targetKey ??
+					publishStatus.deletedBlobPaths.find((p) => p.path === path)
+						?.targetKey;
+				const paths = pathsByTarget.get(targetKey) ?? [];
+				paths.push(path);
+				pathsByTarget.set(targetKey, paths);
+			}
+
+			await publisher.deleteBatchesByTarget(
+				pathsByTarget,
 				async (completed, _total) => {
 					publishedPaths = [
 						...publishedAddPaths,

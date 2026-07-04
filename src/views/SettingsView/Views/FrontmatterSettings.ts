@@ -128,7 +128,7 @@ export class FrontmatterSettings extends PluginSettingTab {
 			new Setting(this.settingsRootElement)
 				.setName("Publish key")
 				.setDesc(
-					'Note property key used to mark a note as eligible to publish. Quartz Syncer will ignore all notes without this property. By default "publish".',
+					'Note property key used to mark a note as eligible to publish. Use true for the default repo, or a configured target key for another repo. By default "publish".',
 				)
 				.addText((text) =>
 					text

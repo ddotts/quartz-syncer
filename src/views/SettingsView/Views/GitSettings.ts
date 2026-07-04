@@ -10,7 +10,11 @@ import SettingView from "src/views/SettingsView/SettingView";
 import QuartzSyncer from "main";
 import { FolderSuggest } from "src/ui/suggest/folder";
 import { RepositoryConnection } from "src/repositoryConnection/RepositoryConnection";
-import { GitAuthType, GitProviderHint } from "src/models/settings";
+import type {
+	GitAuthType,
+	GitProviderHint,
+	GitPublishTarget,
+} from "src/models/settings";
 import { SecretStorageService } from "src/utils/SecretStorageService";
 
 export class GitSettings extends PluginSettingTab {
@@ -56,6 +60,7 @@ export class GitSettings extends PluginSettingTab {
 		this.initializeGitHeader();
 		this.initializeRemoteUrlSetting();
 		this.initializeBranchSetting();
+		this.initializePublishTargetsSetting();
 		this.initializeProviderHintSetting();
 		this.initializeAuthTypeSetting();
 		this.initializeUsernameSetting();
@@ -243,9 +248,9 @@ export class GitSettings extends PluginSettingTab {
 
 	private initializeRemoteUrlSetting() {
 		new Setting(this.settingsRootElement)
-			.setName("Remote URL")
+			.setName("Default remote URL")
 			.setDesc(
-				"The full URL of your Git repository (e.g., https://github.com/username/quartz.git)",
+				"The default Git repository used for notes with publish: true.",
 			)
 			.addText((text) =>
 				text
@@ -257,6 +262,106 @@ export class GitSettings extends PluginSettingTab {
 						await this.checkConnectionAndSaveSettings();
 					}),
 			);
+	}
+
+	private initializePublishTargetsSetting() {
+		new Setting(this.settingsRootElement)
+			.setName("Additional publish targets")
+			.setDesc(
+				"Route notes to extra repositories by setting the publish property to a matching key, for example publish: docs.",
+			)
+			.setHeading();
+
+		const targets = this.settings.settings.gitPublishTargets ?? [];
+
+		targets.forEach((target, index) => {
+			this.initializePublishTargetRow(target, index);
+		});
+
+		new Setting(this.settingsRootElement)
+			.setName("Add publish target")
+			.setDesc(
+				"Uses the same authentication account and token configured below.",
+			)
+			.addButton((button) =>
+				button
+					.setButtonText("Add target")
+					.setCta()
+					.onClick(async () => {
+						this.settings.settings.gitPublishTargets = [
+							...(this.settings.settings.gitPublishTargets ??
+								[]),
+							{
+								key: "",
+								remoteUrl: "",
+								branch: "",
+								enabled: true,
+							},
+						];
+						await this.settings.plugin.saveSettings();
+						this.display();
+					}),
+			);
+	}
+
+	private initializePublishTargetRow(
+		target: GitPublishTarget,
+		index: number,
+	) {
+		const setting = new Setting(this.settingsRootElement)
+			.setName(target.key ? `Target: ${target.key}` : "Publish target")
+			.setDesc(
+				"Frontmatter key value, repository URL, and optional branch.",
+			);
+
+		setting.addText((text) =>
+			text
+				.setPlaceholder("key")
+				.setValue(target.key)
+				.onChange(async (value) => {
+					target.key = value.trim();
+					await this.checkConnectionAndSaveSettings();
+				}),
+		);
+
+		setting.addText((text) =>
+			text
+				.setPlaceholder("https://github.com/username/quartz.git")
+				.setValue(target.remoteUrl)
+				.onChange(async (value) => {
+					target.remoteUrl = value.trim();
+					await this.checkConnectionAndSaveSettings();
+				}),
+		);
+
+		setting.addText((text) =>
+			text
+				.setPlaceholder(this.settings.settings.git.branch || "v4")
+				.setValue(target.branch ?? "")
+				.onChange(async (value) => {
+					target.branch = value.trim();
+					await this.checkConnectionAndSaveSettings();
+				}),
+		);
+
+		setting.addToggle((toggle) =>
+			toggle
+				.setValue(target.enabled !== false)
+				.onChange(async (value) => {
+					target.enabled = value;
+					await this.checkConnectionAndSaveSettings();
+				}),
+		);
+
+		setting.addButton((button) =>
+			button.setIcon("trash").onClick(async () => {
+				this.settings.settings.gitPublishTargets = (
+					this.settings.settings.gitPublishTargets ?? []
+				).filter((_, targetIndex) => targetIndex !== index);
+				await this.settings.plugin.saveSettings();
+				this.display();
+			}),
+		);
 	}
 
 	private autoDetectProvider(url: string) {

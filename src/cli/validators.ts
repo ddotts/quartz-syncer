@@ -6,8 +6,11 @@ import type QuartzSyncer from "main";
  * Catches common misconfigurations before expensive operations.
  */
 export function validatePreFlight(plugin: QuartzSyncer): string | null {
-	if (!plugin.settings.git.remoteUrl) {
-		return "Git remote URL is not configured. Set it in plugin settings or via 'obsidian quartz-syncer:config action=set key=git.remoteUrl value=<url>'.";
+	if (
+		!plugin.settings.git.remoteUrl &&
+		plugin.getEnabledPublishTargets().length === 0
+	) {
+		return "No Git repository is configured. Set a default Git remote URL or add at least one publish target.";
 	}
 
 	if (!plugin.settings.git.branch) {

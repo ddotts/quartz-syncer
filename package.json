@@ -1,6 +1,6 @@
 {
 	"name": "quartz-syncer",
-	"version": "1.15.3",
+	"version": "1.18.1",
 	"description": "A plugin used for publishing notes to Quartz",
 	"main": "main.js",
 	"scripts": {
@@ -65,7 +65,7 @@
 	"dependencies": {
 		"@blacksmithgu/datacore": "^0.1.24",
 		"@isomorphic-git/lightning-fs": "^4.6.2",
-		"@quartz-community/remark-obsidian": "github:quartz-community/remark-obsidian",
+		"@quartz-community/remark-obsidian": "https://codeload.github.com/quartz-community/remark-obsidian/tar.gz/3c4c83d59cf835504e718190d5398fd6bcfa36ac",
 		"@sindresorhus/slugify": "^1.1.2",
 		"buffer": "^6.0.3",
 		"diff": "^8.0.2",
@@ -83,5 +83,16 @@
 		"unified": "^11.0.5",
 		"unist-util-visit": "^5.1.0",
 		"yaml": "^2.8.3"
-	}
+	},
+	"overrides": {
+		"diff": "^8.0.4",
+		"serialize-javascript": "^7.0.5"
+	},
+	"trustedDependencies": [
+		"classic-level",
+		"edgedriver",
+		"esbuild",
+		"geckodriver",
+		"svelte-preprocess"
+	]
 }

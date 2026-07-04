@@ -1,6 +1,8 @@
-# Quartz Syncer
+# Quartz Syncer ddotts
 
-Quartz Syncer is an [Obsidian](https://obsidian.md/) plugin for managing and publishing notes to [Quartz](https://quartz.jzhao.xyz/), the fast, batteries-included static-site generator that transforms Markdown content into fully functional websites.
+Quartz Syncer ddotts is a personal-use fork of Quartz Syncer with tweaks maintained by [ddotts](https://github.com/ddotts). It is an [Obsidian](https://obsidian.md/) plugin for managing and publishing notes to [Quartz](https://quartz.jzhao.xyz/), the fast, batteries-included static-site generator that transforms Markdown content into fully functional websites.
+
+This fork is not an official replacement for Quartz Syncer and is intended for personal usage.
 
 ## Features
 
@@ -13,9 +15,9 @@ Quartz Syncer is an [Obsidian](https://obsidian.md/) plugin for managing and pub
 
 ## Installation
 
-Install the plugin by downloading it from the Obsidian Community plugins browser in Obsidian.
+For the official Quartz Syncer plugin, install it from the Obsidian Community plugins browser in Obsidian.
 
-Alternatively, install the plugin by downloading it from the [Release Tab](https://github.com/saberzero1/quartz-syncer/releases), or through the [Obsidian42 Brat plugin](https://github.com/TfTHacker/obsidian42-brat).
+For this personal fork, install the plugin by downloading the release assets from [ddotts/quartz-syncer releases](https://github.com/ddotts/quartz-syncer/releases), or through the [Obsidian42 Brat plugin](https://github.com/TfTHacker/obsidian42-brat).
 
 ## Setup
 

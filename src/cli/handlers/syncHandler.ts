@@ -136,12 +136,8 @@ export function createSyncHandler(
 					);
 				}
 
-				const connection = publisher.createConnection();
-
-				const publishOk = await publisher.publishBatch(
-					filesToPublish,
-					connection,
-				);
+				const publishOk =
+					await publisher.publishBatchesByTarget(filesToPublish);
 
 				if (!publishOk) {
 					throw new Error("Failed to publish files.");
@@ -152,10 +148,28 @@ export function createSyncHandler(
 
 				if (deletions.length > 0) {
 					if (force) {
-						const deleteOk = await publisher.deleteBatch(
-							deletions,
-							connection,
-						);
+						const pathsByTarget = new Map<
+							string | undefined,
+							string[]
+						>();
+
+						for (const path of deletions) {
+							const targetKey =
+								status.deletedNotePaths.find(
+									(p) => p.path === path,
+								)?.targetKey ??
+								filteredDeletedBlobs.find(
+									(p) => p.path === path,
+								)?.targetKey;
+							const paths = pathsByTarget.get(targetKey) ?? [];
+							paths.push(path);
+							pathsByTarget.set(targetKey, paths);
+						}
+
+						const deleteOk =
+							await publisher.deleteBatchesByTarget(
+								pathsByTarget,
+							);
 
 						if (!deleteOk) {
 							throw new Error("Failed to delete files.");

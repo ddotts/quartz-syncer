@@ -119,12 +119,21 @@ export function createDeleteHandler(
 					);
 				}
 
-				const connection = publisher.createConnection();
+				const pathsByTarget = new Map<string | undefined, string[]>();
 
-				const deleteOk = await publisher.deleteBatch(
-					deletions,
-					connection,
-				);
+				for (const path of deletions) {
+					const targetKey =
+						status.deletedNotePaths.find((p) => p.path === path)
+							?.targetKey ??
+						filteredDeletedBlobs.find((p) => p.path === path)
+							?.targetKey;
+					const paths = pathsByTarget.get(targetKey) ?? [];
+					paths.push(path);
+					pathsByTarget.set(targetKey, paths);
+				}
+
+				const deleteOk =
+					await publisher.deleteBatchesByTarget(pathsByTarget);
 
 				if (!deleteOk) {
 					throw new Error("Failed to delete files.");

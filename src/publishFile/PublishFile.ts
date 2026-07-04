@@ -9,6 +9,7 @@ import {
 } from "src/compiler/FrontmatterCompiler";
 import QuartzSyncerSettings from "src/models/settings";
 import { hasPublishFlag } from "src/publishFile/Validator";
+import { getPublishTargetKey } from "src/publishFile/Validator";
 import { FileMetadataManager } from "src/publishFile/FileMetaDataManager";
 import { DataStore } from "src/publishFile/DataStore";
 import { generateBlobHash } from "src/utils/utils";
@@ -52,6 +53,7 @@ interface IPublishFileProps {
 	metadataCache: MetadataCache;
 	settings: QuartzSyncerSettings;
 	datastore: DataStore;
+	publishTargetKey?: string;
 }
 
 /**
@@ -71,6 +73,7 @@ export class PublishFile {
 	// Access props and other file metadata
 	meta: FileMetadataManager;
 	datastore: DataStore;
+	publishTargetKey?: string;
 
 	constructor({
 		file,
@@ -87,8 +90,22 @@ export class PublishFile {
 		this.vault = vault;
 		this.frontmatter = this.getFrontmatter();
 		this.datastore = datastore;
+		this.publishTargetKey = this.getPublishTargetKey();
 
 		this.meta = new FileMetadataManager(file, this.frontmatter, settings);
+	}
+
+	getPublishTargetKey(): string | undefined {
+		const keys = (this.settings.gitPublishTargets ?? [])
+			.filter((target) => target.enabled !== false)
+			.map((target) => target.key.trim())
+			.filter((key) => key.length > 0);
+
+		return getPublishTargetKey(
+			this.settings.publishFrontmatterKey,
+			this.frontmatter,
+			keys,
+		);
 	}
 
 	/**
@@ -204,6 +221,10 @@ export class PublishFile {
 			this.settings.publishFrontmatterKey,
 			this.frontmatter,
 			this.settings.allNotesPublishableByDefault,
+			(this.settings.gitPublishTargets ?? [])
+				.filter((target) => target.enabled !== false)
+				.map((target) => target.key.trim())
+				.filter((key) => key.length > 0),
 		);
 	}
 

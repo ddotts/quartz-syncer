@@ -48,6 +48,17 @@ export interface GitRemoteSettings {
 	providerHint?: GitProviderHint;
 }
 
+export interface GitPublishTarget {
+	/** Frontmatter value that routes notes to this repository */
+	key: string;
+	/** Full remote URL (e.g., https://github.com/user/repo.git) */
+	remoteUrl: string;
+	/** Branch to sync with. Falls back to gitBranch when empty. */
+	branch?: string;
+	/** Disable without deleting configuration */
+	enabled?: boolean;
+}
+
 /**
  * QuartzSyncer plugin settings.
  * Saved to data.json. All keys are flat (top-level) for compatibility with the
@@ -69,6 +80,8 @@ export default interface QuartzSyncerSettings {
 	gitAuthUsername: string;
 	/** Git provider hint for UI customization */
 	gitProviderHint: GitProviderHint;
+	/** Additional publish targets that reuse the same auth/account settings */
+	gitPublishTargets: GitPublishTarget[];
 
 	/** Vault path settings */
 	vaultPath: string;

@@ -12,7 +12,34 @@ export const hasPublishFlag = (
 	flag: string,
 	frontMatter?: FrontMatterCache,
 	override = false,
-): boolean => !!frontMatter?.[flag] || override;
+	targetKeys: string[] = [],
+): boolean => {
+	if (override) return true;
+
+	const value: unknown = frontMatter?.[flag];
+
+	if (value === true) return true;
+
+	if (typeof value === "string") {
+		return targetKeys.includes(value.trim());
+	}
+
+	return false;
+};
+
+export const getPublishTargetKey = (
+	flag: string,
+	frontMatter?: FrontMatterCache,
+	targetKeys: string[] = [],
+): string | undefined => {
+	const value: unknown = frontMatter?.[flag];
+
+	if (typeof value !== "string") return undefined;
+
+	const key = value.trim();
+
+	return targetKeys.includes(key) ? key : undefined;
+};
 
 /**
  * Validates if the publish front matter is set correctly.
@@ -27,10 +54,11 @@ export function isPublishFrontmatterValid(
 	flag: string,
 	frontMatter?: FrontMatterCache,
 	override = false,
+	targetKeys: string[] = [],
 ): boolean {
-	if (!hasPublishFlag(flag, frontMatter, override)) {
+	if (!hasPublishFlag(flag, frontMatter, override, targetKeys)) {
 		new Notice(
-			"Quartz Syncer: Note does not have the publish: true set. Please add this and try again.",
+			"Quartz Syncer: Note does not have a valid publish value. Use publish: true or a configured publish target key.",
 		);
 
 		return false;

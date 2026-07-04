@@ -9,7 +9,11 @@ import {
 import QuartzSyncer from "main";
 import { FolderSuggest } from "src/ui/suggest/folder";
 import { RepositoryConnection } from "src/repositoryConnection/RepositoryConnection";
-import type { GitAuthType, GitProviderHint } from "src/models/settings";
+import type {
+	GitAuthType,
+	GitProviderHint,
+	GitPublishTarget,
+} from "src/models/settings";
 import { SecretStorageService } from "src/utils/SecretStorageService";
 
 export class GitSettingsPage extends SettingPage {
@@ -40,6 +44,7 @@ export class GitSettingsPage extends SettingPage {
 		this.initializeGitHeader();
 		this.initializeRemoteUrlSetting();
 		this.initializeBranchSetting();
+		this.initializePublishTargetsSetting();
 		this.initializeProviderHintSetting();
 		this.initializeAuthTypeSetting();
 		this.initializeUsernameSetting();
@@ -210,9 +215,9 @@ export class GitSettingsPage extends SettingPage {
 
 	private initializeRemoteUrlSetting() {
 		new Setting(this.containerEl)
-			.setName("Remote URL")
+			.setName("Default remote URL")
 			.setDesc(
-				"The full URL of your Git repository (e.g., https://github.com/username/quartz.git)",
+				"The default Git repository used for notes with publish: true.",
 			)
 			.addText((text) =>
 				text
@@ -224,6 +229,105 @@ export class GitSettingsPage extends SettingPage {
 						await this.checkConnectionAndSaveSettings();
 					}),
 			);
+	}
+
+	private initializePublishTargetsSetting() {
+		new Setting(this.containerEl)
+			.setName("Additional publish targets")
+			.setDesc(
+				"Route notes to extra repositories by setting the publish property to a matching key, for example publish: docs.",
+			)
+			.setHeading();
+
+		const targets = this.settings.gitPublishTargets ?? [];
+
+		targets.forEach((target, index) => {
+			this.initializePublishTargetRow(target, index);
+		});
+
+		new Setting(this.containerEl)
+			.setName("Add publish target")
+			.setDesc(
+				"Uses the same authentication account and token configured below.",
+			)
+			.addButton((button) =>
+				button
+					.setButtonText("Add target")
+					.setCta()
+					.onClick(async () => {
+						this.settings.gitPublishTargets = [
+							...(this.settings.gitPublishTargets ?? []),
+							{
+								key: "",
+								remoteUrl: "",
+								branch: "",
+								enabled: true,
+							},
+						];
+						await this.saveSettings();
+						this.display();
+					}),
+			);
+	}
+
+	private initializePublishTargetRow(
+		target: GitPublishTarget,
+		index: number,
+	) {
+		const setting = new Setting(this.containerEl)
+			.setName(target.key ? `Target: ${target.key}` : "Publish target")
+			.setDesc(
+				"Frontmatter key value, repository URL, and optional branch.",
+			);
+
+		setting.addText((text) =>
+			text
+				.setPlaceholder("key")
+				.setValue(target.key)
+				.onChange(async (value) => {
+					target.key = value.trim();
+					await this.checkConnectionAndSaveSettings();
+				}),
+		);
+
+		setting.addText((text) =>
+			text
+				.setPlaceholder("https://github.com/username/quartz.git")
+				.setValue(target.remoteUrl)
+				.onChange(async (value) => {
+					target.remoteUrl = value.trim();
+					await this.checkConnectionAndSaveSettings();
+				}),
+		);
+
+		setting.addText((text) =>
+			text
+				.setPlaceholder(this.settings.gitBranch || "v4")
+				.setValue(target.branch ?? "")
+				.onChange(async (value) => {
+					target.branch = value.trim();
+					await this.checkConnectionAndSaveSettings();
+				}),
+		);
+
+		setting.addToggle((toggle) =>
+			toggle
+				.setValue(target.enabled !== false)
+				.onChange(async (value) => {
+					target.enabled = value;
+					await this.checkConnectionAndSaveSettings();
+				}),
+		);
+
+		setting.addButton((button) =>
+			button.setIcon("trash").onClick(async () => {
+				this.settings.gitPublishTargets = (
+					this.settings.gitPublishTargets ?? []
+				).filter((_, targetIndex) => targetIndex !== index);
+				await this.saveSettings();
+				this.display();
+			}),
+		);
 	}
 
 	private autoDetectProvider(url: string) {

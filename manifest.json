@@ -1,6 +1,6 @@
 {
 	"id": "quartz-syncer",
-	"name": "Quartz Syncer",
+	"name": "Quartz Syncer ddotts",
 	"version": "1.18.0",
 	"minAppVersion": "1.13.0",
 	"description": "Manage and publish your notes to Quartz, the fast, batteries-included static-site generator.",

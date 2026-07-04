@@ -1,6 +1,7 @@
 import { Notice, Plugin, Workspace } from "obsidian";
 import Publisher from "./src/publisher/Publisher";
 import QuartzSyncerSettings, {
+	type GitPublishTarget,
 	type GitRemoteSettings,
 } from "./src/models/settings";
 import { PublicationCenter } from "src/views/PublicationCenter/PublicationCenter";
@@ -27,6 +28,7 @@ const DEFAULT_SETTINGS: QuartzSyncerSettings = {
 	gitAuthType: "basic",
 	gitAuthUsername: "",
 	gitProviderHint: "github",
+	gitPublishTargets: [],
 
 	vaultPath: "/",
 
@@ -356,9 +358,17 @@ export default class QuartzSyncer extends Plugin {
 	}
 
 	getGitSettingsWithSecret(): GitRemoteSettings {
+		return this.getGitSettingsForTarget();
+	}
+
+	getGitSettingsForTarget(targetKey?: string): GitRemoteSettings {
+		const target = targetKey
+			? this.getEnabledPublishTargets().find((t) => t.key === targetKey)
+			: undefined;
+
 		return {
-			remoteUrl: this.settings.gitRemoteUrl,
-			branch: this.settings.gitBranch,
+			remoteUrl: target?.remoteUrl ?? this.settings.gitRemoteUrl,
+			branch: target?.branch || this.settings.gitBranch,
 			corsProxyUrl: this.settings.gitCorsProxyUrl || undefined,
 			auth: {
 				type: this.settings.gitAuthType,
@@ -367,6 +377,19 @@ export default class QuartzSyncer extends Plugin {
 			},
 			providerHint: this.settings.gitProviderHint || undefined,
 		};
+	}
+
+	getEnabledPublishTargets(): GitPublishTarget[] {
+		return (this.settings.gitPublishTargets ?? [])
+			.map((target) => ({
+				...target,
+				key: target.key.trim(),
+				remoteUrl: target.remoteUrl.trim(),
+				branch: target.branch?.trim(),
+			}))
+			.filter((target) => target.enabled !== false)
+			.filter((target) => target.key.length > 0)
+			.filter((target) => target.remoteUrl.length > 0);
 	}
 
 	/**

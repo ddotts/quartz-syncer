@@ -56,7 +56,7 @@ function buildFrontmatterItems(plugin: QuartzSyncer): SettingDefinition[] {
 		},
 		{
 			name: "Publish key",
-			desc: 'Note property key used to mark a note as eligible to publish. By default "publish".',
+			desc: "Note property key used to mark a note as eligible to publish. Use true for the default repo, or a configured target key for another repo.",
 			aliases: ["frontmatter", "property", "flag"],
 			visible: () => !settings.allNotesPublishableByDefault,
 			control: {

@@ -63,7 +63,7 @@
 	},
 	"dependencies": {
 		"@isomorphic-git/lightning-fs": "^4.6.2",
-		"@quartz-community/remark-obsidian": "github:quartz-community/remark-obsidian",
+		"@quartz-community/remark-obsidian": "https://codeload.github.com/quartz-community/remark-obsidian/tar.gz/3c4c83d59cf835504e718190d5398fd6bcfa36ac",
 		"@sindresorhus/slugify": "^1.1.2",
 		"buffer": "^6.0.3",
 		"diff": "^8.0.4",

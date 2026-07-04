@@ -103,12 +103,8 @@ export function createPublishHandler(
 					);
 				}
 
-				const connection = publisher.createConnection();
-
-				const publishOk = await publisher.publishBatch(
-					filesToPublish,
-					connection,
-				);
+				const publishOk =
+					await publisher.publishBatchesByTarget(filesToPublish);
 
 				if (!publishOk) {
 					throw new Error("Failed to publish files.");

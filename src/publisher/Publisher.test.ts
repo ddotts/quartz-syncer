@@ -238,6 +238,48 @@ describe("Publisher", () => {
 			expect(result.notes[0].file.path).toBe("note1.md");
 		});
 
+		it("includes files where publish key matches a configured target", async () => {
+			const extendedCache = createMockExtendedCache({ isReady: true });
+
+			(
+				extendedCache.api.getFilesWithFrontmatterKey as jest.Mock
+			).mockReturnValue(new Set(["note1.md", "note2.md"]));
+			(metadataCache.getCache as jest.Mock).mockImplementation(
+				(path: string) => ({
+					frontmatter: {
+						publish: path === "note1.md" ? "docs" : "missing",
+					},
+				}),
+			);
+
+			publisher = new Publisher(
+				{} as App,
+				{} as QuartzSyncer,
+				vault,
+				metadataCache,
+				{
+					vaultPath: "/",
+					allNotesPublishableByDefault: false,
+					publishFrontmatterKey: "publish",
+					useExcalidraw: false,
+					useBases: false,
+					useCanvas: false,
+					gitPublishTargets: [
+						{
+							key: "docs",
+							remoteUrl: "https://github.com/test/docs.git",
+						},
+					],
+				} as QuartzSyncerSettings,
+				{} as DataStore,
+				extendedCache,
+			);
+			const result = await publisher.getFilesMarkedForPublishing();
+
+			expect(result.notes.length).toBe(1);
+			expect(result.notes[0].file.path).toBe("note1.md");
+		});
+
 		it("respects vaultPath filter on cache results", async () => {
 			const extendedCache = createMockExtendedCache({ isReady: true });
 

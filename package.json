@@ -65,10 +65,10 @@
 	"dependencies": {
 		"@blacksmithgu/datacore": "^0.1.24",
 		"@isomorphic-git/lightning-fs": "^4.6.2",
-		"@quartz-community/remark-obsidian": "https://codeload.github.com/quartz-community/remark-obsidian/tar.gz/3c4c83d59cf835504e718190d5398fd6bcfa36ac",
+		"@quartz-community/remark-obsidian": "git+https://github.com/quartz-community/remark-obsidian.git#3c4c83d59cf835504e718190d5398fd6bcfa36ac",
 		"@sindresorhus/slugify": "^1.1.2",
 		"buffer": "^6.0.3",
-		"diff": "^8.0.2",
+		"diff": "^8.0.4",
 		"isomorphic-git": "^1.36.1",
 		"js-base64": "^3.7.5",
 		"js-logger": "^1.6.1",

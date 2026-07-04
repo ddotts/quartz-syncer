@@ -289,8 +289,7 @@ export class GitSettings extends PluginSettingTab {
 					.setCta()
 					.onClick(async () => {
 						this.settings.settings.gitPublishTargets = [
-							...(this.settings.settings.gitPublishTargets ??
-								[]),
+							...(this.settings.settings.gitPublishTargets ?? []),
 							{
 								key: "",
 								remoteUrl: "",

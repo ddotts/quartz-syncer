@@ -130,7 +130,12 @@ export function createPublishHandler(
 				}
 
 				const publishOk =
-					await publisher.publishBatchesByTarget(filesToPublish);
+					typeof publisher.publishBatchesByTarget === "function"
+						? await publisher.publishBatchesByTarget(filesToPublish)
+						: await publisher.publishBatch(
+								filesToPublish,
+								publisher.createConnection(),
+							);
 
 				if (!publishOk) {
 					throw new Error("Failed to publish files.");

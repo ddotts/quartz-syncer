@@ -160,7 +160,12 @@ export function createDeleteHandler(
 				}
 
 				const deleteOk =
-					await publisher.deleteBatchesByTarget(pathsByTarget);
+					typeof publisher.deleteBatchesByTarget === "function"
+						? await publisher.deleteBatchesByTarget(pathsByTarget)
+						: await publisher.deleteBatch(
+								deletions,
+								publisher.createConnection(),
+							);
 
 				if (!deleteOk) {
 					throw new Error("Failed to delete files.");

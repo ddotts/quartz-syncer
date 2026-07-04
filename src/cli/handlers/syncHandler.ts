@@ -178,8 +178,19 @@ export function createSyncHandler(
 					);
 				}
 
+				const connection =
+					typeof publisher.publishBatchesByTarget === "function" &&
+					typeof publisher.deleteBatchesByTarget === "function"
+						? undefined
+						: publisher.createConnection();
+
 				const publishOk =
-					await publisher.publishBatchesByTarget(filesToPublish);
+					typeof publisher.publishBatchesByTarget === "function"
+						? await publisher.publishBatchesByTarget(filesToPublish)
+						: await publisher.publishBatch(
+								filesToPublish,
+								connection,
+							);
 
 				if (!publishOk) {
 					throw new Error("Failed to publish files.");
@@ -209,9 +220,15 @@ export function createSyncHandler(
 						}
 
 						const deleteOk =
-							await publisher.deleteBatchesByTarget(
-								pathsByTarget,
-							);
+							typeof publisher.deleteBatchesByTarget ===
+							"function"
+								? await publisher.deleteBatchesByTarget(
+										pathsByTarget,
+									)
+								: await publisher.deleteBatch(
+										deletions,
+										connection,
+									);
 
 						if (!deleteOk) {
 							throw new Error("Failed to delete files.");

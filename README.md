@@ -11,6 +11,7 @@ This fork is not an official replacement for Quartz Syncer and is intended for p
 - **Smart caching**: Caches compiled files for faster subsequent publishes. Dynamic content (Dataview/Datacore queries) is automatically detected and recompiled when needed.
 - **Diff viewer**: Preview exact changes before publishing with split (side-by-side) or unified view.
 - **Selective publishing**: Choose exactly which notes to publish, update, or remove.
+- **Publish-time customization**: Route notes with `publishFolder`, remove source-only Markdown blocks, and rewrite published frontmatter tags with regex rules.
 - **CLI support**: Automate publishing workflows from the terminal via the [Obsidian CLI](https://obsidian.md/cli) (requires Obsidian v1.12+).
 
 ## Installation

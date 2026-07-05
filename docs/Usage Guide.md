@@ -51,6 +51,22 @@ Open the publication center (see above for instructions). Your eligible notes wi
 
 After you are satisfied with your selection, click the big button on the bottom left that says `PUBLISH SELECTED CHANGES` and watch the magic happen.
 
+## Publish-time customization
+
+Use the `publishFolder` note property to route a note to a subfolder inside your configured Quartz content folder. For example, `publishFolder: characters` publishes `Campaign/Ada.md` as `content/characters/Ada.md` while keeping the filename `Ada.md`.
+
+Use remove-from-publish markers to keep source-only Markdown out of Quartz:
+
+```markdown
+<!-- quartz-syncer:remove-start -->
+Private draft content.
+<!-- quartz-syncer:remove-end -->
+```
+
+The command palette command `Quartz Syncer: Insert remove-from-publish block` inserts the markers and wraps selected text when text is selected.
+
+Published tag rewrite rules are configured in **Settings > Note properties (frontmatter)**. They rewrite only published frontmatter tags. For example, pattern `^d/character/(.+)$` with replacement `tag/character/$1+dnd` publishes `d/character/12thday` as `tag/character/12thday+dnd`.
+
 ## CLI
 
 Quartz Syncer also supports the [Obsidian CLI](https://obsidian.md/cli) (v1.12+) for automating publishing from the terminal. See the [[Guides/CLI|CLI guide]] for the full command reference and example workflows.

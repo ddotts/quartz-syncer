@@ -22,6 +22,10 @@ import { visit } from "unist-util-visit";
 import { PublishFile } from "src/publishFile/PublishFile";
 import { PluginCompiler } from "src/compiler/PluginCompiler";
 import { DataStore } from "src/publishFile/DataStore";
+import {
+	RemoveBlockError,
+	removeQuartzSyncerRemoveBlocks,
+} from "src/utils/removeBlocks";
 
 /**
  * Interface for an asset that will be published.
@@ -175,6 +179,7 @@ export class SyncerPageCompiler {
 			this.convertFrontMatter,
 			this.convertIntegrations,
 			this.linkTargeting,
+			this.removeBlocks,
 			this.astTransform,
 		];
 
@@ -303,6 +308,16 @@ export class SyncerPageCompiler {
 	 */
 	linkTargeting: TCompilerStep = () => (text) => {
 		return text.replace(DATAVIEW_LINK_TARGET_BLANK_REGEX, "");
+	};
+
+	removeBlocks: TCompilerStep = () => (text) => {
+		const result = removeQuartzSyncerRemoveBlocks(text);
+
+		if (!result.ok) {
+			throw new RemoveBlockError(result.error);
+		}
+
+		return result.text;
 	};
 
 	private static readonly ASSET_EXTENSIONS = new Set([

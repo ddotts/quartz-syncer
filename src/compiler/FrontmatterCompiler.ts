@@ -2,6 +2,7 @@ import { FrontMatterCache, stringifyYaml } from "obsidian";
 import { sanitizePermalink } from "src/utils/utils";
 import QuartzSyncerSettings from "src/models/settings";
 import { PublishFile } from "src/publishFile/PublishFile";
+import { applyTagRewriteRules } from "src/utils/tagRewriteRules";
 
 /**
  * TFrontmatter type.
@@ -228,9 +229,12 @@ export class FrontmatterCompiler {
 
 			// remove duplicates
 			if (publishedFrontMatter["tags"]) {
-				publishedFrontMatter["tags"] = [
-					...new Set(publishedFrontMatter["tags"]),
-				];
+				const dedupedTags = [...new Set(publishedFrontMatter["tags"])];
+
+				publishedFrontMatter["tags"] = applyTagRewriteRules(
+					dedupedTags,
+					this.settings.tagRewriteRules,
+				);
 			}
 		}
 

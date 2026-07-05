@@ -126,6 +126,7 @@ describe("statusHandler", () => {
 			published: 1,
 			deletedNotes: 1,
 			deletedBlobs: 0,
+			compileIssues: 0,
 		});
 	});
 

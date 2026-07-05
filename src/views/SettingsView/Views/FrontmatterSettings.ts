@@ -1,6 +1,52 @@
 import { Setting, App, PluginSettingTab } from "obsidian";
 import SettingView from "src/views/SettingsView/SettingView";
 import QuartzSyncer from "main";
+import { TagRewriteRule } from "src/models/settings";
+
+function isEscaped(value: string, index: number): boolean {
+	let slashCount = 0;
+
+	for (
+		let cursor = index - 1;
+		cursor >= 0 && value[cursor] === "\\";
+		cursor--
+	) {
+		slashCount++;
+	}
+
+	return slashCount % 2 === 1;
+}
+
+function validateRegexPattern(pattern: string): string | null {
+	if (pattern.trim() === "") {
+		return "Pattern is empty. Empty rules are ignored during publishing.";
+	}
+
+	try {
+		if (pattern.startsWith("/")) {
+			for (let index = pattern.length - 1; index > 0; index--) {
+				if (pattern[index] === "/" && !isEscaped(pattern, index)) {
+					new RegExp(
+						pattern.slice(1, index),
+						pattern.slice(index + 1),
+					);
+
+					return null;
+				}
+			}
+
+			return "Slash-delimited regex is missing its closing slash.";
+		}
+
+		new RegExp(pattern);
+
+		return null;
+	} catch (error) {
+		return error instanceof Error
+			? error.message
+			: "Invalid regular expression.";
+	}
+}
 
 /**
  * FrontmatterSettings class.
@@ -46,6 +92,7 @@ export class FrontmatterSettings extends PluginSettingTab {
 		this.initializePublishedTimestampKeysSetting();
 		this.initializeEnablePermalinkSetting();
 		this.initializeIncludeAllFrontmatterSetting();
+		this.initializeTagRewriteRulesSetting();
 
 		// Set defaults for users that upgraded instead of fresh install.
 		const oldCreatedDefaults = ["created"];
@@ -407,5 +454,107 @@ export class FrontmatterSettings extends PluginSettingTab {
 						await this.settings.plugin.saveSettings();
 					}),
 			);
+	}
+
+	private initializeTagRewriteRulesSetting() {
+		new Setting(this.settingsRootElement)
+			.setName("Published tag rewrite rules")
+			.setDesc(
+				"Rewrite tags in published frontmatter with ordered JavaScript regex replacements. Source notes are not changed.",
+			)
+			.setHeading();
+
+		const rules = this.settings.settings.tagRewriteRules ?? [];
+
+		rules.forEach((rule, index) => {
+			this.initializeTagRewriteRuleRow(rule, index);
+		});
+
+		new Setting(this.settingsRootElement)
+			.setName("Add tag rewrite rule")
+			.setDesc(
+				"Example pattern: ^d/character/(.+)$, replacement: tag/character/$1+dnd.",
+			)
+			.addButton((button) =>
+				button
+					.setButtonText("Add rule")
+					.setCta()
+					.onClick(async () => {
+						this.settings.settings.tagRewriteRules = [
+							...(this.settings.settings.tagRewriteRules ?? []),
+							{
+								pattern: "",
+								replacement: "",
+								enabled: true,
+							},
+						];
+						await this.settings.plugin.saveSettings();
+						this.display();
+					}),
+			);
+	}
+
+	private initializeTagRewriteRuleRow(rule: TagRewriteRule, index: number) {
+		let validationMessage = validateRegexPattern(rule.pattern);
+
+		const validationDescription = (message: string | null) =>
+			message
+				? `Invalid pattern: ${message}`
+				: "Pattern, replacement, enabled toggle, and remove control.";
+
+		const setting = new Setting(this.settingsRootElement)
+			.setName(`Tag rewrite rule ${index + 1}`)
+			.setDesc(validationDescription(validationMessage));
+
+		if (validationMessage) {
+			setting.settingEl.addClass("quartz-syncer-setting-error");
+		}
+
+		setting.addText((text) =>
+			text
+				.setPlaceholder("^d/character/(.+)$")
+				.setValue(rule.pattern)
+				.onChange(async (value) => {
+					rule.pattern = value;
+					validationMessage = validateRegexPattern(value);
+					setting.setDesc(validationDescription(validationMessage));
+
+					setting.settingEl.toggleClass(
+						"quartz-syncer-setting-error",
+						validationMessage !== null,
+					);
+					await this.settings.plugin.saveSettings();
+				}),
+		);
+
+		setting.addText((text) =>
+			text
+				.setPlaceholder("tag/character/$1+dnd")
+				.setValue(rule.replacement)
+				.onChange(async (value) => {
+					rule.replacement = value;
+					await this.settings.plugin.saveSettings();
+				}),
+		);
+
+		setting.addToggle((toggle) =>
+			toggle.setValue(rule.enabled !== false).onChange(async (value) => {
+				rule.enabled = value;
+				await this.settings.plugin.saveSettings();
+			}),
+		);
+
+		setting.addButton((button) =>
+			button
+				.setIcon("trash")
+				.setTooltip("Remove rule")
+				.onClick(async () => {
+					this.settings.settings.tagRewriteRules = (
+						this.settings.settings.tagRewriteRules ?? []
+					).filter((_, ruleIndex) => ruleIndex !== index);
+					await this.settings.plugin.saveSettings();
+					this.display();
+				}),
+		);
 	}
 }

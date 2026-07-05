@@ -65,6 +65,27 @@ export function createPublishHandler(
 				);
 				const controller = new CliProgressController();
 				const status = await statusManager.getPublishStatus(controller);
+				const compileIssues = status.compileIssues ?? [];
+
+				if (compileIssues.length > 0) {
+					const issueLines = compileIssues.map(
+						(issue) =>
+							`${issue.sourcePath} -> ${issue.publishPath}: ${issue.message}`,
+					);
+
+					return formatCliOutput(
+						params,
+						cliError(
+							COMMAND,
+							[
+								`Compile failed for ${compileIssues.length} file${
+									compileIssues.length === 1 ? "" : "s"
+								}.`,
+								...issueLines,
+							].join("\n"),
+						),
+					);
+				}
 
 				const filesToPublish = [
 					...status.unpublishedNotes,

@@ -12,7 +12,7 @@ import { hasPublishFlag } from "src/publishFile/Validator";
 import { getPublishTargetKey } from "src/publishFile/Validator";
 import { FileMetadataManager } from "src/publishFile/FileMetaDataManager";
 import { DataStore } from "src/publishFile/DataStore";
-import { generateBlobHash } from "src/utils/utils";
+import { generateBlobHash, normalizePublishFolder } from "src/utils/utils";
 import {
 	DATAVIEW_FIELD_REGEX,
 	DATAVIEW_INLINE_FIELD_REGEX,
@@ -290,6 +290,24 @@ export class PublishFile {
 		}
 
 		return this.file.path;
+	};
+
+	/**
+	 * Returns the remote publish path relative to the configured content folder.
+	 * Source vault paths are still used for reads and local cache keys.
+	 */
+	getPublishPath = () => {
+		const vaultPath = this.getVaultPath();
+
+		const publishFolder = normalizePublishFolder(
+			this.frontmatter.publishFolder,
+		);
+
+		if (!publishFolder || this.getType() !== "markdown") {
+			return vaultPath;
+		}
+
+		return `${publishFolder}/${this.file.name}`;
 	};
 
 	/**

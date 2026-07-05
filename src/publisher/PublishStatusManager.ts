@@ -3,6 +3,7 @@ import Publisher from "src/publisher/Publisher";
 import { generateBlobHash, batchParallel } from "src/utils/utils";
 import { CompiledPublishFile } from "src/publishFile/PublishFile";
 import { LoadingController } from "src/models/ProgressBar";
+import Logger from "js-logger";
 
 /**
  * PublishStatusManager class.
@@ -73,6 +74,7 @@ export default class PublishStatusManager implements IPublishStatusManager {
 		const changedNotes: Array<CompiledPublishFile> = [];
 		const deletedNotePaths: Array<PathToRemove> = [];
 		const deletedBlobPaths: Array<PathToRemove> = [];
+		const compileIssues: Array<PublishCompileIssue> = [];
 
 		if (controller) {
 			controller.setText("Retrieving publish status...");
@@ -254,13 +256,38 @@ export default class PublishStatusManager implements IPublishStatusManager {
 							);
 						}
 
-						const compiledFile = await file.compile();
+						let compiledFile: CompiledPublishFile;
+
+						try {
+							compiledFile = await file.compile();
+						} catch (error) {
+							const message =
+								error instanceof Error
+									? error.message
+									: String(error);
+
+							compileIssues.push({
+								sourcePath: file.getPath(),
+								publishPath: file.getPublishPath(),
+								publishTargetKey: file.publishTargetKey,
+								severity: "error",
+								message,
+							});
+
+							Logger.error(
+								`Failed to compile ${file.getPath()}: ${message}`,
+								error,
+							);
+
+							return;
+						}
+
 						const [content] = compiledFile.getCompiledFile();
 
 						const localHash = await generateBlobHash(content);
 
 						const remoteHash =
-							remoteNoteHashes[file.getVaultPath()];
+							remoteNoteHashes[file.getPublishPath()];
 
 						if (!remoteHash) {
 							unpublishedNotes.push(compiledFile);
@@ -288,7 +315,7 @@ export default class PublishStatusManager implements IPublishStatusManager {
 			deletedNotePaths.push(
 				...this.generateDeletedContentPaths(
 					remoteNoteHashes,
-					targetNotes.map((f) => f.getVaultPath()),
+					targetNotes.map((f) => f.getPublishPath()),
 				).map((path) => ({ ...path, targetKey })),
 			);
 
@@ -314,6 +341,7 @@ export default class PublishStatusManager implements IPublishStatusManager {
 			changedNotes,
 			deletedNotePaths,
 			deletedBlobPaths,
+			compileIssues,
 		};
 	}
 }
@@ -328,6 +356,14 @@ interface PathToRemove {
 	targetKey?: string;
 }
 
+export interface PublishCompileIssue {
+	sourcePath: string;
+	publishPath: string;
+	publishTargetKey?: string;
+	severity: "error" | "warning";
+	message: string;
+}
+
 /**
  * PublishStatus interface.
  * Represents the status of published notes, including unpublished, published, changed notes, and deleted note and blob paths.
@@ -338,6 +374,7 @@ export interface PublishStatus {
 	changedNotes: Array<CompiledPublishFile>;
 	deletedNotePaths: Array<PathToRemove>;
 	deletedBlobPaths: Array<PathToRemove>;
+	compileIssues: Array<PublishCompileIssue>;
 }
 
 /**

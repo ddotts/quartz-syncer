@@ -11,6 +11,7 @@ import { App, MetadataCache, Vault, TFile } from "obsidian";
 import QuartzSyncerSettings from "src/models/settings";
 import { PublishFile } from "src/publishFile/PublishFile";
 import { DataStore } from "src/publishFile/DataStore";
+import { RemoveBlockError } from "src/utils/removeBlocks";
 
 jest.mock("src/publishFile/DataStore");
 
@@ -269,6 +270,103 @@ describe("SyncerPageCompiler", () => {
 			const result = compiler.linkTargeting(file)(input);
 
 			expect(result).toBe(input);
+		});
+	});
+
+	describe("removeBlocks", () => {
+		it("removes a single remove block", () => {
+			const { compiler } = makeCompiler();
+			const file = makeMockPublishFile();
+
+			const result = compiler.removeBlocks(file)(
+				"Before\n<!-- quartz-syncer:remove-start -->\nsecret\n<!-- quartz-syncer:remove-end -->\nAfter",
+			);
+
+			expect(result).toContain("Before");
+			expect(result).toContain("After");
+			expect(result).not.toContain("secret");
+			expect(result).not.toContain("quartz-syncer:remove");
+		});
+
+		it("removes multiple remove blocks", () => {
+			const { compiler } = makeCompiler();
+			const file = makeMockPublishFile();
+
+			const result = compiler.removeBlocks(file)(
+				"A <!-- quartz-syncer:remove-start -->one<!-- quartz-syncer:remove-end --> B <!-- quartz-syncer:remove-start -->two<!-- quartz-syncer:remove-end --> C",
+			);
+
+			expect(result).toBe("A  B  C");
+		});
+
+		it("removes multiline remove blocks", () => {
+			const { compiler } = makeCompiler();
+			const file = makeMockPublishFile();
+
+			const result = compiler.removeBlocks(file)(
+				"Keep\n<!-- quartz-syncer:remove-start -->\n# Draft\n- private\n<!-- quartz-syncer:remove-end -->\nPublish",
+			);
+
+			expect(result).toContain("Keep");
+			expect(result).toContain("Publish");
+			expect(result).not.toContain("# Draft");
+			expect(result).not.toContain("- private");
+		});
+
+		it("preserves adjacent text around remove blocks", () => {
+			const { compiler } = makeCompiler();
+			const file = makeMockPublishFile();
+
+			const result = compiler.removeBlocks(file)(
+				"Before<!-- quartz-syncer:remove-start -->hidden<!-- quartz-syncer:remove-end -->After",
+			);
+
+			expect(result).toBe("BeforeAfter");
+		});
+
+		it("ignores marker comments inside code fences", () => {
+			const { compiler } = makeCompiler();
+			const file = makeMockPublishFile();
+
+			const input =
+				"```markdown\n<!-- quartz-syncer:remove-start -->\nkeep\n<!-- quartz-syncer:remove-end -->\n```";
+
+			const result = compiler.removeBlocks(file)(input);
+
+			expect(result).toBe(input);
+		});
+
+		it("throws a structured error for a missing start marker", () => {
+			const { compiler } = makeCompiler();
+			const file = makeMockPublishFile();
+
+			expect(() =>
+				compiler.removeBlocks(file)(
+					"hidden\n<!-- quartz-syncer:remove-end -->",
+				),
+			).toThrow(RemoveBlockError);
+		});
+
+		it("throws a structured error for a missing end marker", () => {
+			const { compiler } = makeCompiler();
+			const file = makeMockPublishFile();
+
+			expect(() =>
+				compiler.removeBlocks(file)(
+					"<!-- quartz-syncer:remove-start -->\nhidden",
+				),
+			).toThrow(RemoveBlockError);
+		});
+
+		it("throws a structured error for nested remove blocks", () => {
+			const { compiler } = makeCompiler();
+			const file = makeMockPublishFile();
+
+			expect(() =>
+				compiler.removeBlocks(file)(
+					"<!-- quartz-syncer:remove-start -->\nouter\n<!-- quartz-syncer:remove-start -->\ninner\n<!-- quartz-syncer:remove-end -->\n<!-- quartz-syncer:remove-end -->",
+				),
+			).toThrow(RemoveBlockError);
 		});
 	});
 

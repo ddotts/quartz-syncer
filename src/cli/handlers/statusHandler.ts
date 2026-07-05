@@ -59,6 +59,7 @@ export function createStatusHandler(
 				);
 				const controller = new CliProgressController();
 				const status = await statusManager.getPublishStatus(controller);
+				const compileIssues = status.compileIssues ?? [];
 
 				const notePaths = new Set([
 					...status.unpublishedNotes.map((f) => f.getPath()),
@@ -79,12 +80,14 @@ export function createStatusHandler(
 					published: status.publishedNotes.map((f) => f.getPath()),
 					deletedNotes: status.deletedNotePaths.map((p) => p.path),
 					deletedBlobs: filteredDeletedBlobs.map((p) => p.path),
+					compileIssues,
 					summary: {
 						unpublished: status.unpublishedNotes.length,
 						changed: status.changedNotes.length,
 						published: status.publishedNotes.length,
 						deletedNotes: status.deletedNotePaths.length,
 						deletedBlobs: filteredDeletedBlobs.length,
+						compileIssues: compileIssues.length,
 					},
 				};
 
@@ -129,6 +132,14 @@ export function createStatusHandler(
 						data.summary.deletedNotes + data.summary.deletedBlobs
 					}`,
 					deletedPaths,
+				);
+
+				appendSection(
+					`Issues:      ${data.summary.compileIssues}`,
+					data.compileIssues.map(
+						(issue) =>
+							`${issue.sourcePath} -> ${issue.publishPath}: ${issue.message}`,
+					),
 				);
 
 				const message = messageLines.join("\n");

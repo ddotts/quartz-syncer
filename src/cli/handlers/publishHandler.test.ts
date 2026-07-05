@@ -149,6 +149,44 @@ describe("publishHandler", () => {
 		expect(publishBatch).not.toHaveBeenCalled();
 	});
 
+	it("fails before publishing when compile issues are present", async () => {
+		const publishBatch = jest.fn();
+		const createConnection = jest.fn();
+
+		(Publisher as jest.Mock).mockImplementation(() => ({
+			publishBatch,
+			createConnection,
+		}));
+
+		const mockGetPublishStatus = jest.fn().mockResolvedValue({
+			unpublishedNotes: [makeFile("notes/new.md")],
+			changedNotes: [],
+			publishedNotes: [],
+			deletedNotePaths: [],
+			deletedBlobPaths: [],
+			compileIssues: [
+				{
+					sourcePath: "notes/bad.md",
+					publishPath: "published/bad.md",
+					severity: "error",
+					message: "Missing remove-end marker",
+				},
+			],
+		});
+
+		(PublishStatusManager as jest.Mock).mockImplementation(() => ({
+			getPublishStatus: mockGetPublishStatus,
+		}));
+
+		createPublishHandler(register, createMockPlugin());
+		const result = await handler({} as CliData);
+
+		expect(result).toContain("Error: Compile failed for 1 file.");
+		expect(result).toContain("notes/bad.md -> published/bad.md");
+		expect(createConnection).not.toHaveBeenCalled();
+		expect(publishBatch).not.toHaveBeenCalled();
+	});
+
 	it("returns nothing to publish when empty", async () => {
 		const publishBatch = jest.fn();
 		const createConnection = jest.fn();

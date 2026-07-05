@@ -59,6 +59,15 @@ export interface GitPublishTarget {
 	enabled?: boolean;
 }
 
+export interface TagRewriteRule {
+	/** JavaScript regular expression source or slash-delimited pattern */
+	pattern: string;
+	/** Replacement string passed to String.replace, including capture groups like $1 */
+	replacement: string;
+	/** Disable without deleting configuration */
+	enabled: boolean;
+}
+
 /**
  * QuartzSyncer plugin settings.
  * Saved to data.json, changing requires a migration
@@ -97,6 +106,7 @@ export default interface QuartzSyncerSettings {
 	usePermalink: boolean;
 
 	includeAllFrontmatter: boolean;
+	tagRewriteRules: TagRewriteRule[];
 
 	/**
 	 * Output format for frontmatter in published notes.

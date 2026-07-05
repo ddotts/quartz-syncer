@@ -1106,7 +1106,7 @@ export class RepositoryConnection {
 
 			for (const file of files) {
 				const [text, metadata] = file.compiledFile;
-				const normalizedPath = normalizeFilePath(file.getPath());
+				const normalizedPath = normalizeFilePath(file.getPublishPath());
 				const fullPath = `${this.dir}/${normalizedPath}`;
 
 				await ensureDirectory(normalizedPath);

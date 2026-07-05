@@ -6,6 +6,7 @@ import {
 	generateUrlPath,
 	generateBlobHash,
 	sanitizePermalink,
+	normalizePublishFolder,
 	escapeRegExp,
 } from "./utils";
 import { PathRewriteRule } from "src/repositoryConnection/QuartzSyncerSiteManager";
@@ -172,6 +173,66 @@ describe("utils", () => {
 		it("handles paths with multiple segments", () => {
 			expect(sanitizePermalink("notes/sub/page")).toBe("/notes/sub/page");
 		});
+	});
+
+	describe("normalizePublishFolder", () => {
+		const tests: Array<{
+			name: string;
+			input: unknown;
+			expected: string | null;
+		}> = [
+			{
+				name: "returns null for missing values",
+				input: undefined,
+				expected: null,
+			},
+			{
+				name: "returns null for empty strings",
+				input: "   ",
+				expected: null,
+			},
+			{
+				name: "strips leading slashes",
+				input: "/characters",
+				expected: "characters",
+			},
+			{
+				name: "preserves nested folders",
+				input: "campaign/characters/npcs",
+				expected: "campaign/characters/npcs",
+			},
+			{
+				name: "preserves spaces in folder names",
+				input: "Campaign Notes/NPCs",
+				expected: "Campaign Notes/NPCs",
+			},
+			{
+				name: "normalizes backslashes",
+				input: "campaign\\characters\\npcs",
+				expected: "campaign/characters/npcs",
+			},
+			{
+				name: "strips parent traversal segments",
+				input: "../secret/../characters",
+				expected: "secret/characters",
+			},
+			{
+				name: "returns null when only unsafe segments remain",
+				input: "../..",
+				expected: null,
+			},
+			{
+				name: "returns null for non-string values",
+				input: ["characters"],
+				expected: null,
+			},
+		];
+
+		for (const test of tests) {
+			it(test.name, () => {
+				expect(normalizePublishFolder(test.input)).toBe(test.expected);
+			});
+		}
 	});
 
 	describe("escapeRegExp", () => {

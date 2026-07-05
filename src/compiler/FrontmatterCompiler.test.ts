@@ -23,6 +23,7 @@ function makeSettings(
 		useDataview: false,
 		usePermalink: false,
 		includeAllFrontmatter: false,
+		tagRewriteRules: [],
 		showCreatedTimestamp: false,
 		showUpdatedTimestamp: false,
 		showPublishedTimestamp: false,
@@ -387,6 +388,142 @@ describe("FrontmatterCompiler", () => {
 			const result = compilerPrivate.addTags(base, {});
 
 			expect(result.tags).toEqual(["a", "b", "c"]);
+		});
+
+		it("applies ordered tag rewrite rules with capture groups", () => {
+			const compiler = makeCompiler({
+				tagRewriteRules: [
+					{
+						pattern: "^d/(.*)$",
+						replacement: "tag/$1",
+						enabled: true,
+					},
+					{
+						pattern: "^tag/(character/.*)$",
+						replacement: "tag/$1+dnd",
+						enabled: true,
+					},
+				],
+			});
+
+			const compilerPrivate =
+				compiler as unknown as PrivateFrontmatterCompiler;
+			const base = {
+				tags: ["d/character/12thday", "unchanged"],
+			};
+
+			const result = compilerPrivate.addTags(base, {});
+
+			expect(result.tags).toEqual([
+				"tag/character/12thday+dnd",
+				"unchanged",
+			]);
+			expect(base.tags).toEqual(["d/character/12thday", "unchanged"]);
+		});
+
+		it("supports slash-delimited tag rewrite patterns with escaped slashes", () => {
+			const compiler = makeCompiler({
+				tagRewriteRules: [
+					{
+						pattern: "/^d\\/([\\S]+)/",
+						replacement: "tag/$1+dnd",
+						enabled: true,
+					},
+				],
+			});
+
+			const compilerPrivate =
+				compiler as unknown as PrivateFrontmatterCompiler;
+			const base = { tags: ["d/character/12thday"] };
+
+			const result = compilerPrivate.addTags(base, {});
+
+			expect(result.tags).toEqual(["tag/character/12thday+dnd"]);
+		});
+
+		it("honors slash-delimited tag rewrite flags", () => {
+			const compiler = makeCompiler({
+				tagRewriteRules: [
+					{
+						pattern: "/^D\\/(.*)$/i",
+						replacement: "tag/$1",
+						enabled: true,
+					},
+				],
+			});
+
+			const compilerPrivate =
+				compiler as unknown as PrivateFrontmatterCompiler;
+			const base = { tags: ["d/character"] };
+
+			const result = compilerPrivate.addTags(base, {});
+
+			expect(result.tags).toEqual(["tag/character"]);
+		});
+
+		it("skips disabled tag rewrite rules", () => {
+			const compiler = makeCompiler({
+				tagRewriteRules: [
+					{
+						pattern: "^d/(.*)$",
+						replacement: "tag/$1",
+						enabled: false,
+					},
+				],
+			});
+
+			const compilerPrivate =
+				compiler as unknown as PrivateFrontmatterCompiler;
+			const base = { tags: ["d/character"] };
+
+			const result = compilerPrivate.addTags(base, {});
+
+			expect(result.tags).toEqual(["d/character"]);
+		});
+
+		it("skips invalid tag rewrite regex rules", () => {
+			const compiler = makeCompiler({
+				tagRewriteRules: [
+					{
+						pattern: "[",
+						replacement: "invalid",
+						enabled: true,
+					},
+					{
+						pattern: "^d/(.*)$",
+						replacement: "tag/$1",
+						enabled: true,
+					},
+				],
+			});
+
+			const compilerPrivate =
+				compiler as unknown as PrivateFrontmatterCompiler;
+			const base = { tags: ["d/character"] };
+
+			const result = compilerPrivate.addTags(base, {});
+
+			expect(result.tags).toEqual(["tag/character"]);
+		});
+
+		it("deduplicates tags after rewrite rules are applied", () => {
+			const compiler = makeCompiler({
+				tagRewriteRules: [
+					{
+						pattern: "^source$",
+						replacement: "target",
+						enabled: true,
+					},
+				],
+			});
+
+			const compilerPrivate =
+				compiler as unknown as PrivateFrontmatterCompiler;
+			const base = { tags: ["source", "target"] };
+
+			const result = compilerPrivate.addTags(base, {});
+
+			expect(result.tags).toEqual(["target"]);
 		});
 
 		it("omits tags when no values are provided", () => {

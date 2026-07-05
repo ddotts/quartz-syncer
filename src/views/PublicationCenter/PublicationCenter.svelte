@@ -207,7 +207,7 @@
 	$: publishedNotesTree =
 		publishStatus &&
 		filePathsToTree(
-			publishStatus.publishedNotes.map((note) => note.getVaultPath()),
+			publishStatus.publishedNotes.map((note) => note.getPublishPath()),
 			"Unchanged notes" +
 				(publishStatus.publishedNotes.length > 0
 					? ` (${
@@ -221,7 +221,7 @@
 	$: changedNotesTree =
 		publishStatus &&
 		filePathsToTree(
-			publishStatus.changedNotes.map((note) => note.getVaultPath()),
+			publishStatus.changedNotes.map((note) => note.getPublishPath()),
 			"Changed notes" +
 				(publishStatus.changedNotes.length > 0
 					? ` (${
@@ -259,7 +259,7 @@
 	$: unpublishedNoteTree =
 		publishStatus &&
 		filePathsToTree(
-			publishStatus.unpublishedNotes.map((note) => note.getVaultPath()),
+			publishStatus.unpublishedNotes.map((note) => note.getPublishPath()),
 			"Unpublished notes" +
 				(publishStatus.unpublishedNotes.length > 0
 					? ` (${
@@ -319,6 +319,23 @@
 			throw new Error("Publish status is undefined");
 		}
 
+		if (publishStatus.compileIssues.length > 0) {
+			const shouldProceed = confirm(
+				[
+					`Quartz Syncer could not compile ${
+						publishStatus.compileIssues.length
+					} note${
+						publishStatus.compileIssues.length === 1 ? "" : "s"
+					}.`,
+					"Proceed without the failed notes?",
+				].join("\n\n"),
+			);
+
+			if (!shouldProceed) {
+				return;
+			}
+		}
+
 		// biome-ignore lint/style/noNonNullAssertion: Guarded by earlier checks
 		const unpublishedPaths = traverseTree(unpublishedNoteTree!);
 		// biome-ignore lint/style/noNonNullAssertion: Guarded by earlier checks
@@ -337,12 +354,12 @@
 
 		unpublishedToPublish =
 			publishStatus.unpublishedNotes.filter((note) =>
-				unpublishedPaths.includes(note.getVaultPath()),
+				unpublishedPaths.includes(note.getPublishPath()),
 			) ?? [];
 
 		changedToPublish =
 			publishStatus?.changedNotes.filter((note) =>
-				changedPaths.includes(note.getVaultPath()),
+				changedPaths.includes(note.getPublishPath()),
 			) ?? [];
 
 		const allNotesToPublish = unpublishedToPublish.concat(changedToPublish);
@@ -353,7 +370,7 @@
 
 		// Combine all paths into one list so progress increments uniformly across the entire publish.
 		const allPublishPaths = allNotesToPublish.map((note) =>
-			note.getVaultPath(),
+			note.getPublishPath(),
 		);
 		const allPathsToDelete = [...notesToDelete, ...blobsToDelete];
 		const allPaths = [...allPublishPaths, ...allPathsToDelete];
@@ -438,6 +455,32 @@
 			<div class="quartz-syncer-progress-bar-text">{progressText}</div>
 		</div>
 	{:else if !showPublishingView}
+		{#if publishStatus.compileIssues.length > 0}
+			<div class="quartz-syncer-publisher-callout">
+				<div class="quartz-syncer-publisher-callout-title-inner">
+					Compile issues
+				</div>
+				<div>
+					{publishStatus.compileIssues.length}
+					{publishStatus.compileIssues.length === 1
+						? "note failed to compile and will be skipped."
+						: "notes failed to compile and will be skipped."}
+				</div>
+				{#each publishStatus.compileIssues as issue}
+					<div class="quartz-syncer-publisher-note-list">
+						<Icon name="cross" />
+						<span>
+							{issue.sourcePath}
+							{#if issue.publishPath !== issue.sourcePath}
+								{" -> "}{issue.publishPath}
+							{/if}
+							{" - "}{issue.message}
+						</span>
+					</div>
+				{/each}
+			</div>
+		{/if}
+
 		<TreeView tree={unpublishedNoteTree ?? emptyNode} {showDiff} />
 
 		<TreeView
@@ -491,17 +534,17 @@
 
 			{#each unpublishedToPublish.concat(changedToPublish) as note}
 				<div class="quartz-syncer-publisher-note-list">
-					{#if processingPaths.includes(note.getVaultPath())}
+					{#if processingPaths.includes(note.getPublishPath())}
 						{@html rotatingCog()?.outerHTML}
-					{:else if publishedPaths.includes(note.getVaultPath())}
+					{:else if publishedPaths.includes(note.getPublishPath())}
 						<Icon name="check" />
-					{:else if failedPublish.includes(note.getVaultPath())}
+					{:else if failedPublish.includes(note.getPublishPath())}
 						<Icon name="cross" />
 					{:else}
 						<Icon name="clock" />
 					{/if}
 					{note.file.name}
-					{#if publishedPaths.includes(note.getVaultPath())}
+					{#if publishedPaths.includes(note.getPublishPath())}
 						<span class="quartz-syncer-publisher-published">
 							- PUBLISHED</span
 						>

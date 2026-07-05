@@ -158,6 +158,32 @@ function sanitizePermalink(permalink: string): string {
 }
 
 /**
+ * Normalizes a publishFolder frontmatter value into a safe relative folder.
+ *
+ * @param value - The raw frontmatter value.
+ * @returns A relative folder path, or null when no safe folder was provided.
+ */
+function normalizePublishFolder(value: unknown): string | null {
+	if (typeof value !== "string") {
+		return null;
+	}
+
+	const folder = value.trim().replace(/\\/g, "/");
+
+	if (!folder) {
+		return null;
+	}
+
+	const segments = folder
+		.split("/")
+		.map((segment) => segment.trim())
+		.filter((segment) => segment.length > 0)
+		.filter((segment) => segment !== "." && segment !== "..");
+
+	return segments.length > 0 ? segments.join("/") : null;
+}
+
+/**
  * Checks if a plugin is enabled in Obsidian.
  * It checks both the exact plugin ID and the lowercase version of it.
  *
@@ -639,6 +665,7 @@ export {
 	escapeRegExp,
 	fixSvgForXmlSerializer,
 	sanitizePermalink,
+	normalizePublishFolder,
 	isPluginEnabled,
 	cleanQueryResult,
 	renderPromise,

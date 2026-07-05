@@ -1,4 +1,4 @@
-import { Notice, Plugin, Workspace } from "obsidian";
+import { Notice, Plugin, type Editor, Workspace } from "obsidian";
 import Publisher from "./src/publisher/Publisher";
 import QuartzSyncerSettings, {
 	type GitPublishTarget,
@@ -50,6 +50,7 @@ const DEFAULT_SETTINGS: QuartzSyncerSettings = {
 	usePermalink: false,
 
 	includeAllFrontmatter: false,
+	tagRewriteRules: [],
 	frontmatterFormat: "yaml",
 
 	/**
@@ -140,6 +141,9 @@ const DEFAULT_SETTINGS: QuartzSyncerSettings = {
 	ENABLE_DEVELOPER_TOOLS: false,
 	logLevel: Logger.OFF,
 };
+
+const REMOVE_BLOCK_TEMPLATE =
+	"<!-- quartz-syncer:remove-start -->\n\n<!-- quartz-syncer:remove-end -->";
 
 Logger.useDefaults({
 	defaultLevel: Logger.WARN,
@@ -400,6 +404,14 @@ export default class QuartzSyncer extends Plugin {
 			},
 		});
 
+		this.addCommand({
+			id: "insert-remove-block",
+			name: "Insert remove-from-publish block",
+			editorCallback: (editor) => {
+				this.insertRemoveBlock(editor);
+			},
+		});
+
 		if (this.settings.useCache) {
 			this.addCommand({
 				id: "clear-cache-for-active-file",
@@ -417,6 +429,29 @@ export default class QuartzSyncer extends Plugin {
 				},
 			});
 		}
+	}
+
+	private insertRemoveBlock(editor: Editor): void {
+		const selection = editor.getSelection();
+		const startMarker = "<!-- quartz-syncer:remove-start -->";
+		const endMarker = "<!-- quartz-syncer:remove-end -->";
+
+		if (selection.length > 0) {
+			editor.replaceSelection(
+				`${startMarker}\n${selection}\n${endMarker}`,
+			);
+
+			return;
+		}
+
+		const cursor = editor.getCursor();
+
+		editor.replaceSelection(REMOVE_BLOCK_TEMPLATE);
+
+		editor.setCursor({
+			line: cursor.line + 1,
+			ch: 0,
+		});
 	}
 
 	/**

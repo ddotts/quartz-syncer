@@ -16,7 +16,7 @@ Each rule has:
 - **Pattern**: a JavaScript regular expression source, such as `^d/character/(.+)$`, or a slash-delimited expression, such as `/^d\/character\/(.+)$/`.
 - **Replacement**: a JavaScript replacement string. Capture groups such as `$1` are supported.
 
-Rules run in order against each published tag.
+Rules run in order against each published tag. After all rules run, empty strings are removed from the published tags list. To remove a tag entirely, match the whole tag (for example, `^private$`) and leave the replacement blank. Partial matches remove only the matching text. Source tags remain unchanged.
 
 Example:
 

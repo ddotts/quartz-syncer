@@ -506,6 +506,37 @@ describe("FrontmatterCompiler", () => {
 			expect(result.tags).toEqual(["tag/character"]);
 		});
 
+		it.each([
+			[["private", "public"], ["public"]],
+			[["private"], []],
+			[["private/example"], ["/example"]],
+		])("removes empty rewritten tags from %j", (tags, expected) => {
+			const compiler = makeCompiler({
+				tagRewriteRules: [
+					{ pattern: "^private", replacement: "", enabled: true },
+				],
+			});
+			const compilerPrivate =
+				compiler as unknown as PrivateFrontmatterCompiler;
+			const base = { tags: [...tags] };
+			expect(compilerPrivate.addTags(base, {}).tags).toEqual(expected);
+			expect(base.tags).toEqual(tags);
+		});
+
+		it("finishes ordered rewrites before discarding empty tags", () => {
+			const compiler = makeCompiler({
+				tagRewriteRules: [
+					{ pattern: "^private$", replacement: "", enabled: true },
+					{ pattern: "^$", replacement: "public", enabled: true },
+				],
+			});
+			const compilerPrivate =
+				compiler as unknown as PrivateFrontmatterCompiler;
+			expect(
+				compilerPrivate.addTags({ tags: ["private"] }, {}).tags,
+			).toEqual(["public"]);
+		});
+
 		it("deduplicates tags after rewrite rules are applied", () => {
 			const compiler = makeCompiler({
 				tagRewriteRules: [

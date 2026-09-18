@@ -79,13 +79,15 @@ export function applyTagRewriteRules(
 
 	return [
 		...new Set(
-			tags.map((tag) =>
-				compiledRules.reduce(
-					(currentTag, rule) =>
-						currentTag.replace(rule.regex, rule.replacement),
-					tag,
-				),
-			),
+			tags
+				.map((tag) =>
+					compiledRules.reduce(
+						(currentTag, rule) =>
+							currentTag.replace(rule.regex, rule.replacement),
+						tag,
+					),
+				)
+				.filter((tag) => tag !== ""),
 		),
 	];
 }

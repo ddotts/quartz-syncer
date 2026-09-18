@@ -21,7 +21,7 @@ export const hasPublishFlag = (
 	if (value === true) return true;
 
 	if (typeof value === "string") {
-		return targetKeys.includes(value.trim());
+		return getPublishTargetKey(flag, frontMatter, targetKeys) !== undefined;
 	}
 
 	return false;
@@ -36,7 +36,7 @@ export const getPublishTargetKey = (
 
 	if (typeof value !== "string") return undefined;
 
-	const key = value.trim();
+	const key = value.trim().split("/")[0].trim();
 
 	return targetKeys.includes(key) ? key : undefined;
 };
@@ -58,7 +58,7 @@ export function isPublishFrontmatterValid(
 ): boolean {
 	if (!hasPublishFlag(flag, frontMatter, override, targetKeys)) {
 		new Notice(
-			"Quartz Syncer: Note does not have a valid publish value. Use publish: true or a configured publish target key.",
+			"Quartz Syncer: Note does not have a valid publish value. Use publish: true, key/folder, or key/root with a configured publish target key.",
 		);
 
 		return false;

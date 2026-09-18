@@ -53,7 +53,9 @@ After you are satisfied with your selection, click the big button on the bottom 
 
 ## Publish-time customization
 
-Use the `publishFolder` note property to route a note to a subfolder inside your configured Quartz content folder. For example, `publishFolder: characters` publishes `Campaign/Ada.md` as `content/characters/Ada.md` while keeping the filename `Ada.md`.
+Use the `publish` note property to select a repository and destination folder together. For example, `publish: docs/characters` publishes `Campaign/Ada.md` as `content/characters/Ada.md` in the configured `docs` target. Use `publish: docs/root` to publish it directly as `content/Ada.md`. A bare `publish: docs` inherits the note's vault-relative path, and `publish: true` uses the default repository with that path.
+
+This replaces `publishFolder`: move its value into `publish` (for example, `publish: docs` plus `publishFolder: characters` becomes `publish: docs/characters`) and remove the old property. To route a note previously using `publish: true`, configure a named target for that repository first.
 
 Use remove-from-publish markers to keep source-only Markdown out of Quartz:
 

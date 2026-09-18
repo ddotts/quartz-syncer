@@ -268,7 +268,7 @@ export class GitSettings extends PluginSettingTab {
 		new Setting(this.settingsRootElement)
 			.setName("Additional publish targets")
 			.setDesc(
-				"Route notes to extra repositories by setting the publish property to a matching key, for example publish: docs.",
+				"Route notes to extra repositories by setting the publish property to a matching key, for example publish: docs, docs/folder/subfolder, or docs/root.",
 			)
 			.setHeading();
 
@@ -310,7 +310,7 @@ export class GitSettings extends PluginSettingTab {
 		const setting = new Setting(this.settingsRootElement)
 			.setName(target.key ? `Target: ${target.key}` : "Publish target")
 			.setDesc(
-				"Frontmatter key value, repository URL, and optional branch.",
+				"Target key (without slashes), repository URL, and optional branch.",
 			);
 
 		setting.addText((text) =>

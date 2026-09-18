@@ -299,11 +299,22 @@ export class PublishFile {
 	getPublishPath = () => {
 		const vaultPath = this.getVaultPath();
 
-		const publishFolder = normalizePublishFolder(
-			this.frontmatter.publishFolder,
-		);
+		if (!this.publishTargetKey || this.getType() !== "markdown") {
+			return vaultPath;
+		}
 
-		if (!publishFolder || this.getType() !== "markdown") {
+		const value = this.frontmatter[
+			this.settings.publishFrontmatterKey
+		] as string;
+		const folder = value.trim().split("/").slice(1).join("/").trim();
+
+		if (folder === "root") {
+			return this.file.name;
+		}
+
+		const publishFolder = normalizePublishFolder(folder);
+
+		if (!publishFolder) {
 			return vaultPath;
 		}
 

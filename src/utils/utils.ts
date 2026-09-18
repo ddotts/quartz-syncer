@@ -158,7 +158,7 @@ function sanitizePermalink(permalink: string): string {
 }
 
 /**
- * Normalizes a publishFolder frontmatter value into a safe relative folder.
+ * Normalizes a publish folder path into a safe relative folder.
  *
  * @param value - The raw frontmatter value.
  * @returns A relative folder path, or null when no safe folder was provided.

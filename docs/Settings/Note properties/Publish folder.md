@@ -1,24 +1,33 @@
 ---
 title: Publish folder
-description: Route an individual note to a subfolder inside the configured Quartz content folder.
+description: Select a repository and destination folder with the publish note property.
 created: 2026-07-05T00:00:00Z+0200
-modified: 2026-07-05T00:00:00Z+0200
+modified: 2026-09-18T00:00:00Z+0200
 publish: true
 tags: [settings/frontmatter]
-default_value: Empty
+default_value: Inherit the note path
 ---
 
-The `publishFolder` note property changes where a Markdown note is written in your Quartz repository.
+The `publish` note property selects a configured repository target and an optional destination folder. Configure named targets in Git settings; target keys must not contain `/`.
 
 ```yaml
 ---
-publish: true
-publishFolder: characters
+publish: docs/characters/npcs
 ---
 ```
 
-If your Quartz content folder is `content`, a note named `Campaign/Characters/Ada.md` with `publishFolder: characters` is published as `content/characters/Ada.md`.
+For a note at `Campaign/Characters/Ada.md`, with Quartz content folder `content`:
 
-`publishFolder` is a folder path, not a filename. The published note keeps its source filename. Nested folders such as `characters/npcs` are supported. Leading slashes are ignored, backslashes are treated as folder separators, and parent traversal such as `../private` is stripped so published files stay inside the configured content folder.
+| Publish value | Repository | Published path |
+| --- | --- | --- |
+| `true` (boolean) | Default | `content/Campaign/Characters/Ada.md` |
+| `docs` | Target named `docs` | `content/Campaign/Characters/Ada.md` |
+| `docs/characters/npcs` | Target named `docs` | `content/characters/npcs/Ada.md` |
+| `docs/root` | Target named `docs` | `content/Ada.md` |
+| `docs/root/child` | Target named `docs` | `content/root/child/Ada.md` |
 
-Leaving `publishFolder` empty or removing it preserves the normal vault-relative publish path.
+Only the exact suffix `root` selects the content root. The filename stays unchanged. Folder routing applies to Markdown notes; special file types retain their existing paths. Unknown or disabled keys do not mark notes for publishing unless publishing all notes by default is enabled.
+
+Within the folder suffix, leading slashes are ignored, backslashes are treated as folder separators, and parent traversal segments such as `..` are stripped. An empty folder suffix inherits the note's vault-relative path.
+
+This replaces the separate `publishFolder` property, which is no longer read. Change `publish: docs` plus `publishFolder: characters` to `publish: docs/characters`, then remove `publishFolder`. If a note previously used `publish: true` with `publishFolder`, first configure a named target for its repository and use that key in the combined value.

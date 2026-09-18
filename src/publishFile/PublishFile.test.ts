@@ -12,7 +12,9 @@ function makeSettings(
 		contentFolder: "content",
 		publishFrontmatterKey: "publish",
 		allNotesPublishableByDefault: false,
-		gitPublishTargets: [],
+		gitPublishTargets: [
+			{ key: "docs", remoteUrl: "https://example.com/docs.git" },
+		],
 		useCache: false,
 		useBases: false,
 		useCanvas: false,
@@ -65,7 +67,58 @@ function makePublishFile({
 
 describe("PublishFile", () => {
 	describe("getPublishPath", () => {
-		it("preserves the source vault path when publishFolder is absent", () => {
+		it.each([
+			["docs", "Campaign/Characters/Ada.md", "docs", true],
+			["docs/characters/npcs", "characters/npcs/Ada.md", "docs", true],
+			["docs/root", "Ada.md", "docs", true],
+			["docs/root/child", "root/child/Ada.md", "docs", true],
+			[" docs/root ", "Ada.md", "docs", true],
+			[true, "Campaign/Characters/Ada.md", undefined, true],
+			[false, "Campaign/Characters/Ada.md", undefined, false],
+			["missing/root", "Campaign/Characters/Ada.md", undefined, false],
+		])("routes %s to %s", (publish, path, target, publishable) => {
+			const file = makePublishFile({
+				path: "Campaign/Characters/Ada.md",
+				name: "Ada.md",
+				frontmatter: { publish, publishFolder: "ignored" },
+			});
+			expect(file.getPublishPath()).toBe(path);
+			expect(file.publishTargetKey).toBe(target);
+			expect(file.shouldPublish()).toBe(publishable);
+		});
+
+		it("uses a custom publish property name", () => {
+			const file = makePublishFile({
+				path: "Campaign/Ada.md",
+				name: "Ada.md",
+				frontmatter: { site: "docs/root" },
+				settings: makeSettings({ publishFrontmatterKey: "site" }),
+			});
+			expect(file.publishTargetKey).toBe("docs");
+			expect(file.getPublishPath()).toBe("Ada.md");
+		});
+
+		it("does not route to a disabled target", () => {
+			const file = makePublishFile({
+				path: "Campaign/Ada.md",
+				name: "Ada.md",
+				frontmatter: { publish: "docs/root" },
+				settings: makeSettings({
+					gitPublishTargets: [
+						{
+							key: "docs",
+							remoteUrl: "https://example.com/docs.git",
+							enabled: false,
+						},
+					],
+				}),
+			});
+			expect(file.publishTargetKey).toBeUndefined();
+			expect(file.shouldPublish()).toBe(false);
+			expect(file.getPublishPath()).toBe("Campaign/Ada.md");
+		});
+
+		it("preserves the source vault path when the publish folder is absent", () => {
 			const file = makePublishFile({
 				path: "Campaign/Characters/Ada.md",
 				name: "Ada.md",
@@ -74,21 +127,21 @@ describe("PublishFile", () => {
 			expect(file.getPublishPath()).toBe("Campaign/Characters/Ada.md");
 		});
 
-		it("routes markdown notes to publishFolder plus the source filename", () => {
+		it("routes markdown notes to the publish folder plus the source filename", () => {
 			const file = makePublishFile({
 				path: "Campaign/Characters/Ada.md",
 				name: "Ada.md",
-				frontmatter: { publishFolder: "characters" },
+				frontmatter: { publish: "docs/characters" },
 			});
 
 			expect(file.getPublishPath()).toBe("characters/Ada.md");
 		});
 
-		it("normalizes publishFolder values before building the output path", () => {
+		it("normalizes publish folder values before building the output path", () => {
 			const file = makePublishFile({
 				path: "Campaign/Characters/Ada.md",
 				name: "Ada.md",
-				frontmatter: { publishFolder: "/characters/../npcs\\" },
+				frontmatter: { publish: "docs//characters/../npcs\\" },
 			});
 
 			expect(file.getPublishPath()).toBe("characters/npcs/Ada.md");
@@ -99,7 +152,7 @@ describe("PublishFile", () => {
 				path: "boards/Map.canvas",
 				name: "Map.canvas",
 				extension: "canvas",
-				frontmatter: { publishFolder: "maps" },
+				frontmatter: { publish: "docs/maps" },
 			});
 
 			expect(file.getPublishPath()).toBe("boards/Map.canvas");
@@ -136,8 +189,7 @@ describe("PublishFile", () => {
 			} as TFile;
 
 			const frontmatter = {
-				publish: true,
-				publishFolder: "characters",
+				publish: "docs/characters",
 				tags: ["d/character/12thday", "unchanged"],
 			};
 
@@ -147,21 +199,22 @@ describe("PublishFile", () => {
 			} as unknown as MetadataCache;
 
 			const vault = {
-				cachedRead: jest.fn().mockResolvedValue(
-					[
-						"---",
-						"publish: true",
-						"publishFolder: characters",
-						"tags:",
-						"  - d/character/12thday",
-						"  - unchanged",
-						"---",
-						"Public text",
-						"<!-- quartz-syncer:remove-start -->",
-						"Private text",
-						"<!-- quartz-syncer:remove-end -->",
-					].join("\n"),
-				),
+				cachedRead: jest
+					.fn()
+					.mockResolvedValue(
+						[
+							"---",
+							"publish: docs/characters",
+							"tags:",
+							"  - d/character/12thday",
+							"  - unchanged",
+							"---",
+							"Public text",
+							"<!-- quartz-syncer:remove-start -->",
+							"Private text",
+							"<!-- quartz-syncer:remove-end -->",
+						].join("\n"),
+					),
 				readBinary: jest.fn(),
 				getFileByPath: jest.fn().mockReturnValue(null),
 			} as unknown as Vault;

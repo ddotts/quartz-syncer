@@ -175,7 +175,7 @@ export class FrontmatterSettings extends PluginSettingTab {
 			new Setting(this.settingsRootElement)
 				.setName("Publish key")
 				.setDesc(
-					'Note property key used to mark a note as eligible to publish. Use true for the default repo, or a configured target key for another repo. By default "publish".',
+					'Note property key used to mark a note as eligible to publish. Use true for the default repo, or key/folder/subfolder for a target repo and folder. Use key/root for its content root, or key alone to inherit the note path. By default "publish".',
 				)
 				.addText((text) =>
 					text
